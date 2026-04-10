@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script type="module" crossorigin src="./assets/index-0NWqQd-j.js"></script>
+  <script type="module" crossorigin src="./assets/index-CCAfEj6g.js"></script>
 </head>
 <body class="bg-[#f8fafc] text-slate-900 flex min-h-screen">
 
@@ -87,16 +87,14 @@
                     <div class="text-center"><i class="fa-solid fa-lock text-3xl text-slate-300 mb-3 block"></i><p class="text-sm text-slate-500 font-medium">Chỉ Admin mới có quyền Upload</p></div>
                 </div>
                 <div id="upload-section" class="w-full md:w-[350px] hidden">
-                    <div id="drop-area" class="relative border-2 border-dashed border-blue-300 bg-slate-50 rounded-xl p-6 text-center transition-all cursor-pointer hover:bg-blue-50 group">
-                        <div class="space-y-4">
-                                <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
-                                    <i class="fa-solid fa-file-excel text-3xl"></i>
-                                </div>
-                                <div>
-                                    <h4 class="font-bold text-slate-800 text-lg mb-1" id="file-name-display">Kéo & Thả file Excel / CSV</h4>
-                                    <p class="text-sm text-slate-500 font-medium">hoặc click để chọn file từ máy tính</p>
-                                </div>
-                                <input type="file" id="fileUpload" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".csv, .xls, .xlsx">
+                    <div id="drop-area" class="border-2 border-dashed border-blue-500/30 rounded-2xl p-8 text-center hover:bg-slate-800/50 transition-colors cursor-pointer group">
+                    <div class="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-500/20 transition-colors">
+                        <img src="https://img.icons8.com/color/48/ms-excel.png" alt="excel"/>
+                    </div>
+                    <h3 class="text-white font-medium mb-2" id="file-name-display">Kéo thả file Báo cáo vào đây</h3>
+                    <p class="text-sm text-slate-400 mb-4">hoặc click để chọn file từ máy tính (.csv, .xls, .xlsx, .xsr)</p>
+                    <input type="file" id="file-input" accept=".csv,.xls,.xlsx,.xsr" class="hidden">
+                </div>                <input type="file" id="fileUpload" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".csv, .xls, .xlsx, .xsr">
                             </div>
                     </div>
                     <button id="btnIssue" class="hidden w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg text-sm font-bold items-center justify-center gap-2 transition-all shadow-md mt-3">
