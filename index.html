@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIM STEEL - Trimble Connect</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="module" crossorigin src="./assets/index-J-pvQnOm.js"></script>
+</head>
+<body class="bg-[#f8fafc] text-slate-900 flex min-h-screen">
+
+    <aside class="w-64 bg-[#1e293b] text-slate-300 flex flex-col fixed h-full z-20 transition-all">
+        <div class="p-6 flex items-center gap-3 border-b border-slate-700/50">
+            <div class="bg-blue-500 p-2 rounded-lg text-white">
+                <i class="fa-solid fa-chart-column text-xl"></i>
+            </div>
+            <span class="font-black text-xl tracking-tighter text-white">BIM STEEL</span>
+        </div>
+
+        <nav class="flex-1 py-6 px-4 space-y-2">
+            <button onclick="switchTab('dashboard')" id="btn-dashboard" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all bg-blue-600 text-white shadow-lg shadow-blue-900/20">
+                <i class="fa-solid fa-table-cells-large text-lg w-5 text-center"></i>
+                <span class="font-medium">Dashboard</span>
+            </button>
+            <button onclick="switchTab('tool')" id="btn-tool" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all hover:bg-slate-800 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-file-check text-lg w-5 text-center"></i>
+                <span class="font-medium">Quản lý Ban Hành</span>
+            </button>
+            <button onclick="switchTab('rfi')" id="btn-rfi" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all hover:bg-slate-800 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-comments text-lg w-5 text-center"></i>
+                <span class="font-medium">Quản lý RFI</span>
+            </button>
+            <button onclick="switchTab('hold')" id="btn-hold" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all hover:bg-slate-800 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-hand text-lg w-5 text-center text-red-400"></i>
+                <span class="font-medium">Quản lý Hold</span>
+            </button>
+            <button onclick="switchTab('reports')" id="btn-reports" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all hover:bg-slate-800 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-magnifying-glass-chart text-lg w-5 text-center"></i>
+                <span class="font-medium">Báo cáo thông minh</span>
+            </button>
+        </nav>
+    </aside>
+
+    <main class="flex-1 ml-64 p-4 md:p-8 transition-all relative">
+        <header class="flex items-center justify-between mb-8 bg-white/50 backdrop-blur-md p-4 rounded-2xl border border-white sticky top-4 z-10 shadow-sm">
+            <div class="flex items-center gap-4">
+                <div>
+                    <h1 class="text-lg font-bold text-slate-800 leading-tight" id="page-title">Tổng quan Dự án Dashboard</h1>
+                    <p class="text-xs text-slate-500" id="current-date"></p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button id="adminToggle" onclick="toggleAdmin()" class="flex items-center gap-1 bg-slate-100 px-3 py-2 rounded-full cursor-pointer hover:bg-slate-200 transition-colors border border-slate-200">
+                    <i class="fa-solid fa-lock text-slate-400"></i>
+                    <span class="text-slate-500 font-bold text-xs ml-1 uppercase">Chỉ xem</span>
+                </button>
+                <div class="flex items-center gap-2 bg-slate-100 p-1 pr-3 rounded-full ml-1 cursor-pointer hover:bg-slate-200 transition-colors">
+                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs">HB</div>
+                    <span class="text-sm font-bold text-blue-800 uppercase">HUNGBM</span>
+                </div>
+            </div>
+        </header>
+
+        <div id="tab-dashboard" class="space-y-6 block">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                    <h3 class="font-bold text-slate-800 mb-6">Theo dõi Khối lượng (Tấn)</h3>
+                    <div class="h-64 relative w-full"><canvas id="barChart"></canvas></div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                    <h3 class="font-bold text-slate-800 mb-6">Trạng thái Hồ sơ</h3>
+                    <div class="h-48 relative w-full flex justify-center"><canvas id="donutChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-tool" class="space-y-6 hidden">
+             <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-6 items-center justify-between">
+                <div class="flex-1">
+                    <h2 class="text-xl font-bold text-slate-800 mb-2">1. Cập nhật dữ liệu ban hành</h2>
+                </div>
+                <div id="upload-locked-msg" class="w-full md:w-[350px] flex items-center justify-center p-8 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                    <div class="text-center"><i class="fa-solid fa-lock text-3xl text-slate-300 mb-3 block"></i><p class="text-sm text-slate-500 font-medium">Chỉ Admin mới có quyền Upload</p></div>
+                </div>
+                <div id="upload-section" class="w-full md:w-[350px] hidden">
+                    <div id="drop-area" class="relative border-2 border-dashed border-blue-300 bg-slate-50 rounded-xl p-6 text-center transition-all cursor-pointer hover:bg-blue-50 group">
+                        <input type="file" id="fileUpload" accept=".csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                        <div class="pointer-events-none">
+                            <i class="fa-solid fa-file-csv text-4xl text-blue-400 mb-3"></i>
+                            <h3 class="font-bold text-slate-700 text-sm" id="file-name-display">Kéo thả file CSV</h3>
+                        </div>
+                    </div>
+                    <button id="btnIssue" class="hidden w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg text-sm font-bold items-center justify-center gap-2 transition-all shadow-md mt-3">
+                        <i class="fa-solid fa-paintbrush"></i> Bắt đầu Tô màu
+                    </button>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden" id="reportPanel" style="display: none;">
+                <table class="w-full text-left" id="reportTable"><tbody class="divide-y divide-slate-100 text-sm"></tbody></table>
+            </div>
+        </div>
+
+        <div id="tab-hold" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col mt-6">
+                <h3 class="font-bold text-slate-800 mb-4">Thống kê nguyên nhân Hold</h3>
+                <div class="flex-1 relative w-full flex justify-center items-center min-h-[200px]"><canvas id="holdChart"></canvas></div>
+            </div>
+        </div>
+        
+    </main>
+
+    <!-- Thêm ?v=1 vào link để trình duyệt bị ép phải tải lại code mới nhất thay vì dùng cache cũ -->
+</body>
+</html>
