@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script type="module" crossorigin src="./assets/index-D1pXtL6u.js"></script>
+  <script type="module" crossorigin src="./assets/index-CkpW4nvv.js"></script>
 </head>
 <body class="bg-[#f8fafc] text-slate-900 flex min-h-screen">
 
@@ -88,11 +88,16 @@
                 </div>
                 <div id="upload-section" class="w-full md:w-[350px] hidden">
                     <div id="drop-area" class="relative border-2 border-dashed border-blue-300 bg-slate-50 rounded-xl p-6 text-center transition-all cursor-pointer hover:bg-blue-50 group">
-                        <input type="file" id="fileUpload" accept=".csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                        <div class="pointer-events-none">
-                            <i class="fa-solid fa-file-csv text-4xl text-blue-400 mb-3"></i>
-                            <h3 class="font-bold text-slate-700 text-sm" id="file-name-display">Kéo thả file CSV</h3>
-                        </div>
+                        <div class="space-y-4">
+                                <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                                    <i class="fa-solid fa-file-excel text-3xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-slate-800 text-lg mb-1" id="file-name-display">Kéo & Thả file Excel / CSV</h4>
+                                    <p class="text-sm text-slate-500 font-medium">hoặc click để chọn file từ máy tính</p>
+                                </div>
+                                <input type="file" id="fileUpload" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".csv, .xls, .xlsx">
+                            </div>
                     </div>
                     <button id="btnIssue" class="hidden w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg text-sm font-bold items-center justify-center gap-2 transition-all shadow-md mt-3">
                         <i class="fa-solid fa-paintbrush"></i> Bắt đầu Tô màu
