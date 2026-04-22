@@ -2,17 +2,17 @@
  * Paint Approval Tool v9.0
  * ─────────────────────────────────────
  * 2 file Excel:
- *   File 1 (trình duyệt)  → 🟠 Màu cam  #ffbb00ff
- *   File 2 (đã ban hành)  → 🟢 Xanh lá  #00FF00
- *   Còn lại               → ⚪ Màu xám  rgba(228, 228, 228, 1)
+ *   File 1 (trình duyệt)  → 🟢 Xanh lá  #00FF00
+ *   File 2 (đã ban hành)  → 🔵 Xanh dương #0088FF
+ *   Còn lại               → giữ màu gốc
  *
  * Dựa trên v7 đã chứng minh hoạt động.
- * Chiến lược: ẩn hết & tô xám → hiện+màu → hiện lại phần còn lại
+ * Chiến lược: ẩn hết → hiện+màu → hiện lại phần còn lại
  * ─────────────────────────────────────
  */
 
-var COLOR_RFI = "#ffbb00ff";
-var COLOR_ISSUED = "#00FF00";
+var COLOR_GREEN = "#00FF00";
+var COLOR_BLUE  = "#0088FF";
 var RETRY_MAX   = 7;
 var RETRY_DELAY = 2000;
 var BATCH_CVT   = 500;
@@ -24,31 +24,15 @@ var _guidsGreen = [];  // file 1
 var _guidsBlue  = [];  // file 2
 
 /* ═══ UI ═══ */
-function log(m, t) {
-  if (window.addLog) {
-    var c = "slate";
-    if (t === "info") c = "blue";
-    else if (t === "ok") c = "emerald";
-    else if (t === "err") c = "red";
-    else if (t === "warn") c = "amber";
-    window.addLog(m, c);
-  } else {
-    console.log("[" + (t || "") + "] " + m);
-  }
-}
-function clearLog() { if (window.clearLog) window.clearLog(); }
-function setStat(id, v) { var e = document.getElementById(id); if (e) e.textContent = (v != null) ? v : "—"; }
-function setProgress(p) { 
-  var w = document.getElementById("progWrap"), b = document.getElementById("progBar"); 
-  if (!w || !b) return; 
-  if (p <= 0) { w.classList.add("hidden"); b.style.width = "0%"; return; } 
-  w.classList.remove("hidden"); b.style.width = Math.min(p, 100) + "%"; 
-}
-function lockUI(y) { ["applyBtn", "resetBtn"].forEach(function (id) { var e = document.getElementById(id); if (e) e.disabled = y; }); }
-function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
-function pad2(n) { return String(n).padStart(2, "0"); }
-function fmtN(n) { return typeof n === "number" ? n.toLocaleString() : String(n); }
-function checkApplyBtn() { document.getElementById("applyBtn").disabled = (!_guidsGreen.length && !_guidsBlue.length); }
+function log(m,t){var e=document.getElementById("log");if(!e){console.log(m);return;}var s=document.createElement("span");if(t)s.className=t;s.textContent=m+"\n";e.appendChild(s);e.scrollTop=e.scrollHeight;console.log("["+(t||"")+"] "+m);}
+function clearLog(){var e=document.getElementById("log");if(e)e.innerHTML="";}
+function setStat(id,v){var e=document.getElementById(id);if(e)e.textContent=(v!=null)?v:"—";}
+function setProgress(p){var w=document.getElementById("progWrap"),b=document.getElementById("progBar");if(!w||!b)return;if(p<=0){w.classList.remove("on");b.style.width="0%";return;}w.classList.add("on");b.style.width=Math.min(p,100)+"%";}
+function lockUI(y){["applyBtn","resetBtn","saveBtn"].forEach(function(id){var e=document.getElementById(id);if(e)e.disabled=y;});}
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+function pad2(n){return String(n).padStart(2,"0");}
+function fmtN(n){return typeof n==="number"?n.toLocaleString():String(n);}
+function checkApplyBtn(){document.getElementById("applyBtn").disabled=(!_guidsGreen.length&&!_guidsBlue.length);}
 
 /* ═══ UUID ↔ IFC GUID ═══ */
 var B64="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_$";
@@ -141,11 +125,12 @@ async function paintBatch(api,mid,ids,state){
 
 /* ═══════════════════════════════════════
    MAIN — v9
+   Chiến lược giống v7 (đã work):
    1. Reset
-   2. Ẩn hết và tô màu xám
-   3. Hiện + tô MÀU CAM (trình duyệt)
-   4. Hiện + tô XANH LÁ (đã ban hành)
-   5. Hiện lại phần còn lại (sẽ mang màu xám)
+   2. Ẩn hết
+   3. Hiện + tô XANH LÁ (trình duyệt)
+   4. Hiện + tô XANH DƯƠNG (đã ban hành)
+   5. Hiện lại phần còn lại (giữ màu gốc)
 ═══════════════════════════════════════ */
 async function applyColors(){
   lockUI(true);clearLog();setProgress(5);
@@ -161,19 +146,19 @@ async function applyColors(){
 
     // 2. Get models
     var mi=await getModelIds();
-    setStat("stat-total",fmtN(mi.total));
+    setStat("s-total",fmtN(mi.total));
     setProgress(18);
 
     // 3. Convert GUIDs
     log("Map GUIDs...","info");
-    var greenMap=await convertAll(api,mi.modelIds,_guidsGreen,"🟠");
-    var blueMap =await convertAll(api,mi.modelIds,_guidsBlue, "🟢");
+    var greenMap=await convertAll(api,mi.modelIds,_guidsGreen,"🟢");
+    var blueMap =await convertAll(api,mi.modelIds,_guidsBlue, "🔵");
 
     var greenTotal=0,blueTotal=0;
     greenMap.forEach(function(ids){greenTotal+=ids.length;});
     blueMap.forEach(function(ids){blueTotal+=ids.length;});
-    setStat("stat-amber",fmtN(greenTotal));
-    setStat("stat-green",fmtN(blueTotal));
+    setStat("s-green",fmtN(greenTotal));
+    setStat("s-blue",fmtN(blueTotal));
 
     if(greenTotal===0&&blueTotal===0){
       log("✗ Không match object nào!","err");
@@ -181,52 +166,51 @@ async function applyColors(){
     }
     setProgress(35);
 
-    // 4. Ẩn TẤT CẢ và chuyển xám
-    log("Ẩn toàn bộ model và chuyển màu xám...","info");
-    try{await api.viewer.setObjectState(undefined,{visible:false,color:"rgba(228, 228, 228, 1)"});}catch(e){}
+    // 4. Ẩn TẤT CẢ
+    log("Ẩn toàn bộ model...","info");
+    try{await api.viewer.setObjectState(undefined,{visible:false});}catch(e){}
     await sleep(800);
     setProgress(42);
 
-    // 5. Hiện + tô MÀU CAM (trình duyệt)
+    // 5. Hiện + tô XANH LÁ (trình duyệt)
     if(greenTotal>0){
-      log("━━━ Tô MÀU CAM (trình duyệt): "+fmtN(greenTotal)+" ━━━","info");
+      log("━━━ Tô XANH LÁ (trình duyệt): "+fmtN(greenTotal)+" ━━━","info");
       for(var i=0;i<mi.modelIds.length;i++){
         var mid=mi.modelIds[i];
         var ids=greenMap.get(mid);
         if(!ids||!ids.length)continue;
-        await paintBatch(api,mid,ids,{visible:true,color:COLOR_RFI});
-        log("  ▪ "+fmtN(ids.length)+" objects màu cam","ok");
+        await paintBatch(api,mid,ids,{visible:true,color:COLOR_GREEN});
+        log("  ▪ "+fmtN(ids.length)+" objects xanh lá","ok");
       }
     }
     setProgress(58);
+    await sleep(300);
 
-    // 6. Hiện + tô XANH LÁ (đã ban hành)
+    // 6. Hiện + tô XANH DƯƠNG (đã ban hành)
     if(blueTotal>0){
-      log("━━━ Tô XANH LÁ (đã ban hành): "+fmtN(blueTotal)+" ━━━","info");
+      log("━━━ Tô XANH DƯƠNG (đã ban hành): "+fmtN(blueTotal)+" ━━━","info");
       for(var i=0;i<mi.modelIds.length;i++){
         var mid=mi.modelIds[i];
         var ids=blueMap.get(mid);
         if(!ids||!ids.length)continue;
-        await paintBatch(api,mid,ids,{visible:true,color:COLOR_ISSUED});
-        log("  ▪ "+fmtN(ids.length)+" objects xanh lá","ok");
+        await paintBatch(api,mid,ids,{visible:true,color:COLOR_BLUE});
+        log("  ▪ "+fmtN(ids.length)+" objects xanh dương","ok");
       }
     }
     setProgress(75);
-    // 7. Hiện lại phần còn lại (đã mang màu xám từ bước 4)
-    log("Hiện phần còn lại (màu xám)...","info");
+    await sleep(300);
+
+    // 7. Hiện lại phần còn lại (giữ màu gốc, KHÔNG tô màu)
+    log("Hiện phần còn lại (giữ màu gốc)...","info");
     try{await api.viewer.setObjectState(undefined,{visible:true});}catch(e){}
     await sleep(500);
     setProgress(100);
 
     log("","info");
     log("✓ HOÀN TẤT!","ok");
-    if(greenTotal) log("  🟠 Trình duyệt: "+fmtN(greenTotal)+" cấu kiện","ok");
-    if(blueTotal)  log("  🟢 Đã ban hành: "+fmtN(blueTotal)+" cấu kiện","ok");
-    log("  ⚪ Còn lại: màu xám","info");
-    
-    // Tự động lưu View sau khi hoàn tất
-    await saveView();
-
+    if(greenTotal) log("  🟢 Trình duyệt: "+fmtN(greenTotal)+" cấu kiện","ok");
+    if(blueTotal)  log("  🔵 Đã ban hành: "+fmtN(blueTotal)+" cấu kiện","ok");
+    log("  Còn lại: giữ màu gốc","info");
     setTimeout(function(){setProgress(0);},2000);
 
   }catch(err){
@@ -238,7 +222,7 @@ async function applyColors(){
 async function resetViewer(){
   lockUI(true);clearLog();setProgress(10);
   try{var api=await getAPI();try{await api.viewer.setObjectState(undefined,{color:"reset",visible:"reset"});}catch(e){}await api.viewer.reset();
-  setStat("stat-total","—");setStat("stat-amber","—");setStat("stat-green","—");
+  setStat("s-total","—");setStat("s-green","—");setStat("s-blue","—");
   setProgress(100);log("✓ Reset OK.","ok");setTimeout(function(){setProgress(0);},1000);}
   catch(e){log("✗ "+(e&&e.message?e.message:String(e)),"err");setProgress(0);}
   finally{lockUI(false);checkApplyBtn();}
@@ -246,11 +230,11 @@ async function resetViewer(){
 
 /* ═══ Save View ═══ */
 async function saveView(){
-  try{var api=await getAPI();var inp=document.getElementById("view-name");var name=inp?inp.value.trim():"";
-  if(!name){var n=new Date();name="Auto_View_"+n.getFullYear()+pad2(n.getMonth()+1)+pad2(n.getDate())+"_"+pad2(n.getHours())+pad2(n.getMinutes());if(inp)inp.value=name;}
-  var c=await api.view.createView({name:name,description:"Paint Approval Tool v9.0 | BIM STEEL"});
+  try{var api=await getAPI();var inp=document.getElementById("viewName");var name=inp?inp.value.trim():"";
+  if(!name){var n=new Date();name="Approval "+n.getFullYear()+"-"+pad2(n.getMonth()+1)+"-"+pad2(n.getDate())+" "+pad2(n.getHours())+":"+pad2(n.getMinutes());if(inp)inp.value=name;}
+  var c=await api.view.createView({name:name,description:"Paint Approval Tool v9.0 | Le Van Thao"});
   if(!c||!c.id)throw new Error("No view ID.");await api.view.updateView({id:c.id});await api.view.selectView(c.id);
-  log('✓ TỰ ĐỘNG LƯU VIEW: "'+name+'"',"ok");}catch(e){log("✗ "+(e&&e.message?e.message:String(e)),"err");}
+  log('✓ View: "'+name+'"',"ok");}catch(e){log("✗ "+(e&&e.message?e.message:String(e)),"err");}
 }
 
 /* ═══ File Events ═══ */
@@ -272,12 +256,13 @@ async function handleFile(fileInput,fnameId,label,setGuids){
   }
 }
 
-document.getElementById("file-amber").addEventListener("change",function(){
-  handleFile(this,"name-amber","Trình duyệt",function(g){_guidsGreen=g;});
+document.getElementById("file1").addEventListener("change",function(){
+  handleFile(this,"fname1","Trình duyệt",function(g){_guidsGreen=g;});
 });
-document.getElementById("file-green").addEventListener("change",function(){
-  handleFile(this,"name-green","Đã ban hành",function(g){_guidsBlue=g;});
+document.getElementById("file2").addEventListener("change",function(){
+  handleFile(this,"fname2","Đã ban hành",function(g){_guidsBlue=g;});
 });
 
 document.getElementById("applyBtn").addEventListener("click",applyColors);
 document.getElementById("resetBtn").addEventListener("click",resetViewer);
+document.getElementById("saveBtn").addEventListener("click",saveView);
