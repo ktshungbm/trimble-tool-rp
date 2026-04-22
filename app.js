@@ -55,11 +55,32 @@ function extractGuids(wb,label){
   var rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{defval:""});
   if(!rows.length)throw new Error("Sheet trống.");
   var keys=Object.keys(rows[0]);
-  var gk=keys.find(function(k){return k.trim().toUpperCase()==="GUID";});
-  if(!gk){gk=keys[0];log('  ⚠ Dùng cột đầu: "'+gk+'"',"warn");}
+  
+  var gk=keys.find(function(k){
+    var up=k.trim().toUpperCase();
+    return up==="GUID"||up==="GLOBALID"||up==="IFCGUID"||up==="TEKLA_GUID"||up==="ID"||up==="ID_PART";
+  });
+  
+  if(!gk){
+    var maxHits = 0;
+    for(var i=0; i<keys.length; i++){
+      var k = keys[i];
+      var hits = 0;
+      for(var r=0; r<Math.min(rows.length, 10); r++){
+        var val = String(rows[r][k]||"").trim();
+        if(val.toUpperCase().startsWith("ID")) val = val.substring(2);
+        if(val.length===22 || val.length===32 || val.length===36) hits++;
+      }
+      if(hits > maxHits){ maxHits = hits; gk = k; }
+    }
+  }
+
+  if(!gk){gk=keys[0];log('  ⚠ Không thấy cột GUID, dùng cột đầu: "'+gk+'"',"warn");}
+  else { log('  ℹ Đã chọn cột: "'+gk+'"',"info"); }
+  
   var seen={},out=[];
   rows.forEach(function(r){var g=String(r[gk]||"").trim();if(g&&!seen[g]){seen[g]=true;out.push(g);}});
-  log('  ['+label+'] Sheet "'+sn+'": '+out.length+' GUID',"info");
+  log('  ['+label+'] Sheet "'+sn+'": '+out.length+' dòng data',"info");
   return out;
 }
 
@@ -91,13 +112,34 @@ async function batchConvert(api,mid,guids){
   return out;
 }
 
-/** Thử cả UUID và IFC format, trả về Map<modelId, number[]> */
+/** Thử nhiều format, bao gồm cắt bỏ prefix "ID" */
 async function convertAll(api,modelIds,guids,label){
   var result=new Map();
   if(!guids.length) return result;
 
   var uuids=[],ifcs=[],others=[];
-  guids.forEach(function(g){var f=detectFmt(g);if(f==="uuid"||f==="nd")uuids.push(g);else if(f==="ifc")ifcs.push(g);else others.push(g);});
+  guids.forEach(function(g){
+    var gStr = String(g).trim();
+    if(!gStr) return;
+    var gNoID = gStr.toUpperCase().startsWith("ID") ? gStr.substring(2) : gStr;
+    
+    others.push(gStr);
+    if(gNoID !== gStr) others.push(gNoID);
+    
+    var checkPush = function(val){
+      var len=val.length;
+      if(len===36||len===32) uuids.push(val);
+      else if(len===22) ifcs.push(val);
+    };
+    checkPush(gStr);
+    if(gNoID !== gStr) checkPush(gNoID);
+  });
+  
+  function unique(arr){var u={};arr.forEach(function(x){u[x]=1;});return Object.keys(u);}
+  uuids = unique(uuids);
+  ifcs = unique(ifcs);
+  others = unique(others);
+
   var u2i=uuids.map(uuid2ifc).filter(Boolean);
   var i2u=ifcs.map(ifc2uuid).filter(Boolean);
 
