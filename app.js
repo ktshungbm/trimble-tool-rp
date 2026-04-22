@@ -24,11 +24,27 @@ var _guidsGreen = [];  // file 1
 var _guidsBlue = [];  // file 2
 
 /* ═══ UI ═══ */
-function log(m, t) { var e = document.getElementById("log"); if (!e) { console.log(m); return; } var s = document.createElement("span"); if (t) s.className = t; s.textContent = m + "\n"; e.appendChild(s); e.scrollTop = e.scrollHeight; console.log("[" + (t || "") + "] " + m); }
-function clearLog() { var e = document.getElementById("log"); if (e) e.innerHTML = ""; }
+function log(m, t) {
+  if (window.addLog) {
+    var c = "slate";
+    if (t === "info") c = "blue";
+    else if (t === "ok") c = "emerald";
+    else if (t === "err") c = "red";
+    else if (t === "warn") c = "amber";
+    window.addLog(m, c);
+  } else {
+    console.log("[" + (t || "") + "] " + m);
+  }
+}
+function clearLog() { if (window.clearLog) window.clearLog(); }
 function setStat(id, v) { var e = document.getElementById(id); if (e) e.textContent = (v != null) ? v : "—"; }
-function setProgress(p) { var w = document.getElementById("progWrap"), b = document.getElementById("progBar"); if (!w || !b) return; if (p <= 0) { w.classList.remove("on"); b.style.width = "0%"; return; } w.classList.add("on"); b.style.width = Math.min(p, 100) + "%"; }
-function lockUI(y) { ["applyBtn", "resetBtn", "saveBtn"].forEach(function (id) { var e = document.getElementById(id); if (e) e.disabled = y; }); }
+function setProgress(p) { 
+  var w = document.getElementById("progWrap"), b = document.getElementById("progBar"); 
+  if (!w || !b) return; 
+  if (p <= 0) { w.classList.add("hidden"); b.style.width = "0%"; return; } 
+  w.classList.remove("hidden"); b.style.width = Math.min(p, 100) + "%"; 
+}
+function lockUI(y) { ["applyBtn", "resetBtn"].forEach(function (id) { var e = document.getElementById(id); if (e) e.disabled = y; }); }
 function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 function pad2(n) { return String(n).padStart(2, "0"); }
 function fmtN(n) { return typeof n === "number" ? n.toLocaleString() : String(n); }
@@ -146,7 +162,7 @@ async function applyColors() {
 
     // 2. Get models
     var mi = await getModelIds();
-    setStat("s-total", fmtN(mi.total));
+    setStat("stat-total", fmtN(mi.total));
     setProgress(18);
 
     // 3. Convert GUIDs
@@ -157,8 +173,8 @@ async function applyColors() {
     var greenTotal = 0, blueTotal = 0;
     greenMap.forEach(function (ids) { greenTotal += ids.length; });
     blueMap.forEach(function (ids) { blueTotal += ids.length; });
-    setStat("s-green", fmtN(greenTotal));
-    setStat("s-blue", fmtN(blueTotal));
+    setStat("stat-amber", fmtN(greenTotal));
+    setStat("stat-green", fmtN(blueTotal));
 
     if (greenTotal === 0 && blueTotal === 0) {
       log("✗ Không match object nào!", "err");
@@ -211,6 +227,10 @@ async function applyColors() {
     if (greenTotal) log("  🟠 Trình duyệt: " + fmtN(greenTotal) + " cấu kiện", "ok");
     if (blueTotal) log("  🟢 Đã ban hành: " + fmtN(blueTotal) + " cấu kiện", "ok");
     log("  ⚪ Còn lại: màu xám", "info");
+    
+    // Tự động lưu View sau khi hoàn tất
+    await saveView();
+
     setTimeout(function () { setProgress(0); }, 2000);
 
   } catch (err) {
@@ -223,7 +243,7 @@ async function resetViewer() {
   lockUI(true); clearLog(); setProgress(10);
   try {
     var api = await getAPI(); try { await api.viewer.setObjectState(undefined, { color: "reset", visible: "reset" }); } catch (e) { } await api.viewer.reset();
-    setStat("s-total", "—"); setStat("s-green", "—"); setStat("s-blue", "—");
+    setStat("stat-total", "—"); setStat("stat-amber", "—"); setStat("stat-green", "—");
     setProgress(100); log("✓ Reset OK.", "ok"); setTimeout(function () { setProgress(0); }, 1000);
   }
   catch (e) { log("✗ " + (e && e.message ? e.message : String(e)), "err"); setProgress(0); }
@@ -233,12 +253,12 @@ async function resetViewer() {
 /* ═══ Save View ═══ */
 async function saveView() {
   try {
-    var api = await getAPI(); var inp = document.getElementById("viewName"); var name = inp ? inp.value.trim() : "";
-    if (!name) { var n = new Date(); name = "Approval " + n.getFullYear() + "-" + pad2(n.getMonth() + 1) + "-" + pad2(n.getDate()) + " " + pad2(n.getHours()) + ":" + pad2(n.getMinutes()); if (inp) inp.value = name; }
-    var c = await api.view.createView({ name: name, description: "Paint Approval Tool v9.0 | Le Van Thao" });
+    var api = await getAPI(); var inp = document.getElementById("view-name"); var name = inp ? inp.value.trim() : "";
+    if (!name) { var n = new Date(); name = "Auto_View_" + n.getFullYear() + pad2(n.getMonth() + 1) + pad2(n.getDate()) + "_" + pad2(n.getHours()) + pad2(n.getMinutes()); if (inp) inp.value = name; }
+    var c = await api.view.createView({ name: name, description: "Paint Approval Tool v9.0 | BIM STEEL" });
     if (!c || !c.id) throw new Error("No view ID."); await api.view.updateView({ id: c.id }); await api.view.selectView(c.id);
-    log('✓ View: "' + name + '"', "ok");
-  } catch (e) { log("✗ " + (e && e.message ? e.message : String(e)), "err"); }
+    log('✓ TỰ ĐỘNG LƯU VIEW: "' + name + '"', "ok");
+  } catch (e) { log("✗ Lỗi lưu view: " + (e && e.message ? e.message : String(e)), "err"); }
 }
 
 /* ═══ File Events ═══ */
@@ -260,13 +280,12 @@ async function handleFile(fileInput, fnameId, label, setGuids) {
   }
 }
 
-document.getElementById("file1").addEventListener("change", function () {
-  handleFile(this, "fname1", "Trình duyệt", function (g) { _guidsGreen = g; });
+document.getElementById("file-amber").addEventListener("change", function () {
+  handleFile(this, "name-amber", "Trình duyệt", function (g) { _guidsGreen = g; });
 });
-document.getElementById("file2").addEventListener("change", function () {
-  handleFile(this, "fname2", "Đã ban hành", function (g) { _guidsBlue = g; });
+document.getElementById("file-green").addEventListener("change", function () {
+  handleFile(this, "name-green", "Đã ban hành", function (g) { _guidsBlue = g; });
 });
 
 document.getElementById("applyBtn").addEventListener("click", applyColors);
 document.getElementById("resetBtn").addEventListener("click", resetViewer);
-document.getElementById("saveBtn").addEventListener("click", saveView);
