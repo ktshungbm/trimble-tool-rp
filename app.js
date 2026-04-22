@@ -2,17 +2,17 @@
  * Paint Approval Tool v9.0
  * ─────────────────────────────────────
  * 2 file Excel:
- *   File 1 (trình duyệt)  →  #00FF00
- *   File 2 (đã ban hành)  →  #ffbb00ff
- *   Còn lại               → #FFFFFF
+ *   File 1 (trình duyệt)  → 🟠 Màu cam  #ffbb00ff
+ *   File 2 (đã ban hành)  → 🟢 Xanh lá  #00FF00
+ *   Còn lại               → ⚪ Màu xám  rgba(228, 228, 228, 1)
  *
  * Dựa trên v7 đã chứng minh hoạt động.
- * Chiến lược: ẩn hết → hiện+màu → hiện lại phần còn lại
+ * Chiến lược: ẩn hết & tô xám → hiện+màu → hiện lại phần còn lại
  * ─────────────────────────────────────
  */
 
-var COLOR_GREEN = "#FFBB00";
-var COLOR_BLUE = "#00FF00";
+var COLOR_RFI = "#ffbb00ff";
+var COLOR_ISSUED = "#00FF00";
 var RETRY_MAX = 7;
 var RETRY_DELAY = 2000;
 var BATCH_CVT = 500;
@@ -125,13 +125,12 @@ async function paintBatch(api, mid, ids, state) {
 
 /* ═══════════════════════════════════════
    MAIN — v9
-   Chiến lược:
+   Chiến lược giống v7 (đã work):
    1. Reset
-   2. Lấy modelIds và đối tượng
-   3. Map GUIDs
-   4. Đổi toàn bộ model sang TRẮNG (#FFFFFF)
-   5. Tô XANH LÁ (trình duyệt)
-   6. Tô CAM/VÀNG (đã ban hành)
+   2. Ẩn hết và tô màu xám
+   3. Hiện + tô MÀU CAM (trình duyệt)
+   4. Hiện + tô XANH LÁ (đã ban hành)
+   5. Hiện lại phần còn lại (sẽ mang màu xám)
 ═══════════════════════════════════════ */
 async function applyColors() {
   lockUI(true); clearLog(); setProgress(5);
@@ -146,8 +145,6 @@ async function applyColors() {
     setProgress(10);
 
     // 2. Get models
-    var rawObjects;
-    try { rawObjects = await api.viewer.getObjects(); } catch (e) { }
     var mi = await getModelIds();
     setStat("s-total", fmtN(mi.total));
     setProgress(18);
@@ -169,53 +166,51 @@ async function applyColors() {
     }
     setProgress(35);
 
-    // 4. Đổi màu toàn bộ model sang TRẮNG (#FFFFFF)
-    log("Đổi màu toàn bộ model sang Trắng (#FFFFFF)...", "info");
-    if (rawObjects && rawObjects.length) {
-      for (var o = 0; o < rawObjects.length; o++) {
-        var obj = rawObjects[o];
-        var runtimeIds = obj.objectRuntimeIds || obj.ids || obj.objects;
-        if (obj.modelId && runtimeIds && runtimeIds.length > 0) {
-          await paintBatch(api, obj.modelId, runtimeIds, { visible: true, color: "#FFFFFF" });
-        }
-      }
-    }
+    // 4. Ẩn TẤT CẢ và chuyển xám
+    log("Ẩn toàn bộ model và chuyển màu xám...", "info");
+    try { await api.viewer.setObjectState(undefined, { visible: false, color: "rgba(228, 228, 228, 1)" }); } catch (e) { }
     await sleep(800);
     setProgress(42);
 
-    // 5. Tô MÀU CAM (trình duyệt)
+    // 5. Hiện + tô MÀU CAM (trình duyệt)
     if (greenTotal > 0) {
       log("━━━ Tô MÀU CAM (trình duyệt): " + fmtN(greenTotal) + " ━━━", "info");
       for (var i = 0; i < mi.modelIds.length; i++) {
         var mid = mi.modelIds[i];
         var ids = greenMap.get(mid);
         if (!ids || !ids.length) continue;
-        await paintBatch(api, mid, ids, { visible: true, color: COLOR_GREEN });
-        log("  ▪ " + fmtN(ids.length) + " objects trình duyệt (cam)", "ok");
+        await paintBatch(api, mid, ids, { visible: true, color: COLOR_RFI });
+        log("  ▪ " + fmtN(ids.length) + " objects màu cam", "ok");
       }
     }
     setProgress(58);
     await sleep(300);
 
-    // 6. Tô XANH LÁ (đã ban hành)
+    // 6. Hiện + tô XANH LÁ (đã ban hành)
     if (blueTotal > 0) {
       log("━━━ Tô XANH LÁ (đã ban hành): " + fmtN(blueTotal) + " ━━━", "info");
       for (var i = 0; i < mi.modelIds.length; i++) {
         var mid = mi.modelIds[i];
         var ids = blueMap.get(mid);
         if (!ids || !ids.length) continue;
-        await paintBatch(api, mid, ids, { visible: true, color: COLOR_BLUE });
-        log("  ▪ " + fmtN(ids.length) + " objects đã ban hành (xanh lá)", "ok");
+        await paintBatch(api, mid, ids, { visible: true, color: COLOR_ISSUED });
+        log("  ▪ " + fmtN(ids.length) + " objects xanh lá", "ok");
       }
     }
-    setProgress(100);
+    setProgress(75);
+    await sleep(300);
+
+    // 7. Hiện lại phần còn lại (đã mang màu xám từ bước 4)
+    log("Hiện phần còn lại (màu xám)...", "info");
+    try { await api.viewer.setObjectState(undefined, { visible: true }); } catch (e) { }
     await sleep(500);
+    setProgress(100);
 
     log("", "info");
     log("✓ HOÀN TẤT!", "ok");
     if (greenTotal) log("  🟠 Trình duyệt: " + fmtN(greenTotal) + " cấu kiện", "ok");
     if (blueTotal) log("  🟢 Đã ban hành: " + fmtN(blueTotal) + " cấu kiện", "ok");
-    log("  ⚪ Còn lại: Trắng (#FFFFFF)", "info");
+    log("  ⚪ Còn lại: màu xám", "info");
     setTimeout(function () { setProgress(0); }, 2000);
 
   } catch (err) {
