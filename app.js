@@ -1,18 +1,19 @@
 /**
- * Paint Approval Tool v9.0
+ * Paint Approval Tool v10.0
  * ─────────────────────────────────────
  * 2 file Excel:
- *   File 1 (trình duyệt)  → 🟢 Xanh lá  #00FF00
- *   File 2 (đã ban hành)  → 🔵 Xanh dương #0088FF
- *   Còn lại               → giữ màu gốc
+ *   File 1 (Ban hành)  → 🟢 Xanh lá  #00FF00
+ *   File 2 (RFI)       → 🟠 Màu cam  #FFBB00
+ *   Còn lại            → ⚪ Màu xám  #808080
  *
- * Dựa trên v7 đã chứng minh hoạt động.
- * Chiến lược: ẩn hết → hiện+màu → hiện lại phần còn lại
+ * Dựa trên v9 đã chứng minh hoạt động.
+ * Chiến lược: tô xám hết → hiện+màu ban hành → hiện+màu rfi
  * ─────────────────────────────────────
  */
 
-var COLOR_GREEN = "#00FF00";
-var COLOR_BLUE  = "#0088FF";
+var COLOR_GREEN  = "#00FF00";
+var COLOR_ORANGE = "#FFBB00";
+var COLOR_GRAY   = "#808080";
 var RETRY_MAX   = 7;
 var RETRY_DELAY = 2000;
 var BATCH_CVT   = 500;
@@ -21,18 +22,18 @@ var PAINT_DELAY = 150;
 
 var _api = null;
 var _guidsGreen = [];  // file 1
-var _guidsBlue  = [];  // file 2
+var _guidsOrange= [];  // file 2
 
 /* ═══ UI ═══ */
 function log(m,t){var e=document.getElementById("log");if(!e){console.log(m);return;}var s=document.createElement("span");if(t)s.className=t;s.textContent=m+"\n";e.appendChild(s);e.scrollTop=e.scrollHeight;console.log("["+(t||"")+"] "+m);}
 function clearLog(){var e=document.getElementById("log");if(e)e.innerHTML="";}
 function setStat(id,v){var e=document.getElementById(id);if(e)e.textContent=(v!=null)?v:"—";}
 function setProgress(p){var w=document.getElementById("progWrap"),b=document.getElementById("progBar");if(!w||!b)return;if(p<=0){w.classList.remove("on");b.style.width="0%";return;}w.classList.add("on");b.style.width=Math.min(p,100)+"%";}
-function lockUI(y){["applyBtn","resetBtn","saveBtn"].forEach(function(id){var e=document.getElementById(id);if(e)e.disabled=y;});}
+function lockUI(y){["applyBtn","resetBtn"].forEach(function(id){var e=document.getElementById(id);if(e)e.disabled=y;});}
 function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
 function pad2(n){return String(n).padStart(2,"0");}
 function fmtN(n){return typeof n==="number"?n.toLocaleString():String(n);}
-function checkApplyBtn(){document.getElementById("applyBtn").disabled=(!_guidsGreen.length&&!_guidsBlue.length);}
+function checkApplyBtn(){document.getElementById("applyBtn").disabled=(!_guidsGreen.length&&!_guidsOrange.length);}
 
 /* ═══ UUID ↔ IFC GUID ═══ */
 var B64="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_$";
@@ -124,18 +125,17 @@ async function paintBatch(api,mid,ids,state){
 }
 
 /* ═══════════════════════════════════════
-   MAIN — v9
-   Chiến lược giống v7 (đã work):
+   MAIN — v10
    1. Reset
-   2. Ẩn hết
-   3. Hiện + tô XANH LÁ (trình duyệt)
-   4. Hiện + tô XANH DƯƠNG (đã ban hành)
-   5. Hiện lại phần còn lại (giữ màu gốc)
+   2. Hiện và tô XÁM tất cả
+   3. Hiện + tô XANH LÁ (Ban hành)
+   4. Hiện + tô CAM (RFI)
+   5. Auto Save View
 ═══════════════════════════════════════ */
 async function applyColors(){
   lockUI(true);clearLog();setProgress(5);
   try{
-    if(!_guidsGreen.length&&!_guidsBlue.length) throw new Error("Chưa có file nào.");
+    if(!_guidsGreen.length&&!_guidsOrange.length) throw new Error("Chưa có file nào.");
     var api=await getAPI();
 
     // 1. Reset
@@ -152,29 +152,29 @@ async function applyColors(){
     // 3. Convert GUIDs
     log("Map GUIDs...","info");
     var greenMap=await convertAll(api,mi.modelIds,_guidsGreen,"🟢");
-    var blueMap =await convertAll(api,mi.modelIds,_guidsBlue, "🔵");
+    var orangeMap =await convertAll(api,mi.modelIds,_guidsOrange, "🟠");
 
-    var greenTotal=0,blueTotal=0;
+    var greenTotal=0,orangeTotal=0;
     greenMap.forEach(function(ids){greenTotal+=ids.length;});
-    blueMap.forEach(function(ids){blueTotal+=ids.length;});
+    orangeMap.forEach(function(ids){orangeTotal+=ids.length;});
     setStat("s-green",fmtN(greenTotal));
-    setStat("s-blue",fmtN(blueTotal));
+    setStat("s-orange",fmtN(orangeTotal));
 
-    if(greenTotal===0&&blueTotal===0){
+    if(greenTotal===0&&orangeTotal===0){
       log("✗ Không match object nào!","err");
       setProgress(0);lockUI(false);checkApplyBtn();return;
     }
     setProgress(35);
 
-    // 4. Ẩn TẤT CẢ
-    log("Ẩn toàn bộ model...","info");
-    try{await api.viewer.setObjectState(undefined,{visible:false});}catch(e){}
+    // 4. Hiện và tô màu XÁM cho TẤT CẢ
+    log("Tô xám toàn bộ model...","info");
+    try{await api.viewer.setObjectState(undefined,{visible:true, color:COLOR_GRAY});}catch(e){}
     await sleep(800);
     setProgress(42);
 
-    // 5. Hiện + tô XANH LÁ (trình duyệt)
+    // 5. Hiện + tô XANH LÁ (Ban hành)
     if(greenTotal>0){
-      log("━━━ Tô XANH LÁ (trình duyệt): "+fmtN(greenTotal)+" ━━━","info");
+      log("━━━ Tô XANH LÁ (Ban hành): "+fmtN(greenTotal)+" ━━━","info");
       for(var i=0;i<mi.modelIds.length;i++){
         var mid=mi.modelIds[i];
         var ids=greenMap.get(mid);
@@ -186,32 +186,33 @@ async function applyColors(){
     setProgress(58);
     await sleep(300);
 
-    // 6. Hiện + tô XANH DƯƠNG (đã ban hành)
-    if(blueTotal>0){
-      log("━━━ Tô XANH DƯƠNG (đã ban hành): "+fmtN(blueTotal)+" ━━━","info");
+    // 6. Hiện + tô MÀU CAM (RFI)
+    if(orangeTotal>0){
+      log("━━━ Tô MÀU CAM (RFI): "+fmtN(orangeTotal)+" ━━━","info");
       for(var i=0;i<mi.modelIds.length;i++){
         var mid=mi.modelIds[i];
-        var ids=blueMap.get(mid);
+        var ids=orangeMap.get(mid);
         if(!ids||!ids.length)continue;
-        await paintBatch(api,mid,ids,{visible:true,color:COLOR_BLUE});
-        log("  ▪ "+fmtN(ids.length)+" objects xanh dương","ok");
+        await paintBatch(api,mid,ids,{visible:true,color:COLOR_ORANGE});
+        log("  ▪ "+fmtN(ids.length)+" objects màu cam","ok");
       }
     }
     setProgress(75);
     await sleep(300);
 
-    // 7. Hiện lại phần còn lại (giữ màu gốc, KHÔNG tô màu)
-    log("Hiện phần còn lại (giữ màu gốc)...","info");
-    try{await api.viewer.setObjectState(undefined,{visible:true});}catch(e){}
-    await sleep(500);
     setProgress(100);
 
     log("","info");
     log("✓ HOÀN TẤT!","ok");
-    if(greenTotal) log("  🟢 Trình duyệt: "+fmtN(greenTotal)+" cấu kiện","ok");
-    if(blueTotal)  log("  🔵 Đã ban hành: "+fmtN(blueTotal)+" cấu kiện","ok");
-    log("  Còn lại: giữ màu gốc","info");
-    setTimeout(function(){setProgress(0);},2000);
+    if(greenTotal) log("  🟢 Ban hành: "+fmtN(greenTotal)+" cấu kiện","ok");
+    if(orangeTotal)log("  🟠 RFI: "+fmtN(orangeTotal)+" cấu kiện","ok");
+    log("  Còn lại: màu xám","info");
+    
+    setTimeout(async function(){
+      setProgress(0);
+      log("Đang tự động lưu View...","info");
+      await saveView();
+    },1500);
 
   }catch(err){
     log("✗ "+(err&&err.message?err.message:String(err)),"err");setProgress(0);
@@ -222,7 +223,7 @@ async function applyColors(){
 async function resetViewer(){
   lockUI(true);clearLog();setProgress(10);
   try{var api=await getAPI();try{await api.viewer.setObjectState(undefined,{color:"reset",visible:"reset"});}catch(e){}await api.viewer.reset();
-  setStat("s-total","—");setStat("s-green","—");setStat("s-blue","—");
+  setStat("s-total","—");setStat("s-green","—");setStat("s-orange","—");
   setProgress(100);log("✓ Reset OK.","ok");setTimeout(function(){setProgress(0);},1000);}
   catch(e){log("✗ "+(e&&e.message?e.message:String(e)),"err");setProgress(0);}
   finally{lockUI(false);checkApplyBtn();}
@@ -230,11 +231,28 @@ async function resetViewer(){
 
 /* ═══ Save View ═══ */
 async function saveView(){
-  try{var api=await getAPI();var inp=document.getElementById("viewName");var name=inp?inp.value.trim():"";
-  if(!name){var n=new Date();name="Approval "+n.getFullYear()+"-"+pad2(n.getMonth()+1)+"-"+pad2(n.getDate())+" "+pad2(n.getHours())+":"+pad2(n.getMinutes());if(inp)inp.value=name;}
-  var c=await api.view.createView({name:name,description:"Paint Approval Tool v9.0 | Le Van Thao"});
-  if(!c||!c.id)throw new Error("No view ID.");await api.view.updateView({id:c.id});await api.view.selectView(c.id);
-  log('✓ View: "'+name+'"',"ok");}catch(e){log("✗ "+(e&&e.message?e.message:String(e)),"err");}
+  try{
+    var api=await getAPI();
+    var n=new Date();
+    var name="Auto Update "+n.getFullYear()+"-"+pad2(n.getMonth()+1)+"-"+pad2(n.getDate())+" "+pad2(n.getHours())+":"+pad2(n.getMinutes());
+    // Create view with shared permissions, if API supports it
+    var c=await api.view.createView({
+      name:name,
+      description:"Paint Approval Tool v10.0 | Auto Save",
+      isShared:true, 
+      sharedWith:["PROJECT"] 
+    });
+    if(!c||!c.id)throw new Error("No view ID.");
+    
+    try {
+      await api.view.updateView({id:c.id, type:"SHARED"});
+    } catch(ignore){}
+    
+    await api.view.selectView(c.id);
+    log('✓ Đã tự động lưu View: "'+name+'"',"ok");
+  }catch(e){
+    log("✗ Lỗi lưu view: "+(e&&e.message?e.message:String(e)),"err");
+  }
 }
 
 /* ═══ File Events ═══ */
@@ -257,12 +275,11 @@ async function handleFile(fileInput,fnameId,label,setGuids){
 }
 
 document.getElementById("file1").addEventListener("change",function(){
-  handleFile(this,"fname1","Trình duyệt",function(g){_guidsGreen=g;});
+  handleFile(this,"fname1","Ban hành",function(g){_guidsGreen=g;});
 });
 document.getElementById("file2").addEventListener("change",function(){
-  handleFile(this,"fname2","Đã ban hành",function(g){_guidsBlue=g;});
+  handleFile(this,"fname2","RFI",function(g){_guidsOrange=g;});
 });
 
 document.getElementById("applyBtn").addEventListener("click",applyColors);
 document.getElementById("resetBtn").addEventListener("click",resetViewer);
-document.getElementById("saveBtn").addEventListener("click",saveView);
