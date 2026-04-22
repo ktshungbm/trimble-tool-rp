@@ -11,10 +11,10 @@
  * ─────────────────────────────────────
  */
 
-var COLOR_GREEN = "#00FF00";
+var COLOR_GREEN  = "#00FF00";
 var COLOR_ORANGE = "#FFBB00";
-var COLOR_RED = "#FF0000";
-var COLOR_GRAY = "#808080";
+var COLOR_RED    = "#FF0000";
+var COLOR_GRAY   = "#CCCCCC"; // Lighter gray so it's clearly gray, not dark wireframe
 var RETRY_MAX = 7;
 var RETRY_DELAY = 2000;
 var BATCH_CVT = 500;
@@ -25,7 +25,7 @@ var _api = null;
 var _guidsGreen = [];  // file 1
 var _guidsOrange = [];  // file 2
 var _guidsRed = [];  // file 3
-var _updateCount = 1;  // Counter for saved views
+var _updateCount = 0;  // Start at 0, increment before save
 
 /* ═══ UI ═══ */
 function log(m, t) { var e = document.getElementById("log"); if (!e) { console.log(m); return; } var s = document.createElement("span"); if (t) s.className = t; s.textContent = m + "\n"; e.appendChild(s); e.scrollTop = e.scrollHeight; console.log("[" + (t || "") + "] " + m); }
@@ -217,7 +217,7 @@ async function applyColors() {
     // 4. Hiện và tô XÁM toàn bộ model
     log("Tô xám toàn bộ model...", "info");
     try { await api.viewer.setObjectState(undefined, { visible: true, color: COLOR_GRAY }); } catch (e) { }
-    await sleep(800);
+    await sleep(2500); // Wait longer to ensure viewer finishes applying global color before specific colors
     setProgress(42);
 
     // 5. Hiện + tô XANH LÁ (Ban hành)
@@ -273,11 +273,12 @@ async function applyColors() {
 
     setTimeout(async function () {
       setProgress(0);
-      log("Đang tự động lưu View...", "info");
-      await saveView();
+      _updateCount++;
       var ctext = document.getElementById("update-count-text");
       if (ctext) ctext.textContent = _updateCount;
-      _updateCount++;
+
+      log("Đang tự động lưu View...", "info");
+      await saveView();
     }, 1500);
 
   } catch (err) {
