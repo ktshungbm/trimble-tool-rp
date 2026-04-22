@@ -13,6 +13,7 @@
 
 var COLOR_GREEN  = "#00FF00";
 var COLOR_ORANGE = "#FFBB00";
+var COLOR_RED    = "#FF0000";
 var COLOR_GRAY   = "#808080";
 var RETRY_MAX   = 7;
 var RETRY_DELAY = 2000;
@@ -23,6 +24,7 @@ var PAINT_DELAY = 150;
 var _api = null;
 var _guidsGreen = [];  // file 1
 var _guidsOrange= [];  // file 2
+var _guidsRed   = [];  // file 3
 var _updateCount = 1;  // Counter for saved views
 
 /* ═══ UI ═══ */
@@ -34,7 +36,7 @@ function lockUI(y){["applyBtn","resetBtn"].forEach(function(id){var e=document.g
 function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
 function pad2(n){return String(n).padStart(2,"0");}
 function fmtN(n){return typeof n==="number"?n.toLocaleString():String(n);}
-function checkApplyBtn(){document.getElementById("applyBtn").disabled=(!_guidsGreen.length&&!_guidsOrange.length);}
+function checkApplyBtn(){document.getElementById("applyBtn").disabled=(!_guidsGreen.length&&!_guidsOrange.length&&!_guidsRed.length);}
 
 /* ═══ UUID ↔ IFC GUID ═══ */
 var B64="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_$";
@@ -178,7 +180,7 @@ async function paintBatch(api,mid,ids,state){
 async function applyColors(){
   lockUI(true);clearLog();setProgress(5);
   try{
-    if(!_guidsGreen.length&&!_guidsOrange.length) throw new Error("Chưa có file nào.");
+    if(!_guidsGreen.length&&!_guidsOrange.length&&!_guidsRed.length) throw new Error("Chưa có file nào.");
     var api=await getAPI();
 
     // 1. Reset
@@ -194,24 +196,27 @@ async function applyColors(){
 
     // 3. Convert GUIDs
     log("Map GUIDs...","info");
-    var greenMap=await convertAll(api,mi.modelIds,_guidsGreen,"🟢");
-    var orangeMap =await convertAll(api,mi.modelIds,_guidsOrange, "🟠");
+    var greenMap =await convertAll(api,mi.modelIds,_guidsGreen,"🟢");
+    var orangeMap=await convertAll(api,mi.modelIds,_guidsOrange,"🟠");
+    var redMap   =await convertAll(api,mi.modelIds,_guidsRed,"🔴");
 
-    var greenTotal=0,orangeTotal=0;
+    var greenTotal=0,orangeTotal=0,redTotal=0;
     greenMap.forEach(function(ids){greenTotal+=ids.length;});
     orangeMap.forEach(function(ids){orangeTotal+=ids.length;});
+    redMap.forEach(function(ids){redTotal+=ids.length;});
     setStat("s-green",fmtN(greenTotal));
     setStat("s-orange",fmtN(orangeTotal));
+    setStat("s-red",fmtN(redTotal));
 
-    if(greenTotal===0&&orangeTotal===0){
+    if(greenTotal===0&&orangeTotal===0&&redTotal===0){
       log("✗ Không match object nào!","err");
       setProgress(0);lockUI(false);checkApplyBtn();return;
     }
     setProgress(35);
 
-    // 4. Ẩn TẤT CẢ (Giống logic file Mẫu)
-    log("Ẩn toàn bộ model...","info");
-    try{await api.viewer.setObjectState(undefined,{visible:false});}catch(e){}
+    // 4. Hiện và tô XÁM toàn bộ model
+    log("Tô xám toàn bộ model...","info");
+    try{await api.viewer.setObjectState(undefined,{visible:true, color:COLOR_GRAY});}catch(e){}
     await sleep(800);
     setProgress(42);
 
@@ -243,17 +248,28 @@ async function applyColors(){
     setProgress(75);
     await sleep(300);
 
-    // 7. Hiện lại phần còn lại (giữ màu gốc)
-    log("Hiện phần còn lại (giữ màu gốc)...","info");
-    try{await api.viewer.setObjectState(undefined,{visible:true});}catch(e){}
-    await sleep(500);
+    // 7. Hiện + tô MÀU ĐỎ (Hold)
+    if(redTotal>0){
+      log("━━━ Tô MÀU ĐỎ (Hold): "+fmtN(redTotal)+" ━━━","info");
+      for(var i=0;i<mi.modelIds.length;i++){
+        var mid=mi.modelIds[i];
+        var ids=redMap.get(mid);
+        if(!ids||!ids.length)continue;
+        await paintBatch(api,mid,ids,{visible:true,color:COLOR_RED});
+        log("  ▪ "+fmtN(ids.length)+" objects màu đỏ","ok");
+      }
+    }
+    setProgress(95);
+    await sleep(300);
+
     setProgress(100);
 
     log("","info");
     log("✓ HOÀN TẤT!","ok");
     if(greenTotal) log("  🟢 Ban hành: "+fmtN(greenTotal)+" cấu kiện","ok");
     if(orangeTotal)log("  🟠 RFI: "+fmtN(orangeTotal)+" cấu kiện","ok");
-    log("  Còn lại: giữ màu gốc","info");
+    if(redTotal)   log("  🔴 Hold: "+fmtN(redTotal)+" cấu kiện","ok");
+    log("  Còn lại: màu xám","info");
     
     setTimeout(async function(){
       setProgress(0);
@@ -271,7 +287,7 @@ async function applyColors(){
 async function resetViewer(){
   lockUI(true);clearLog();setProgress(10);
   try{var api=await getAPI();try{await api.viewer.setObjectState(undefined,{color:"reset",visible:"reset"});}catch(e){}await api.viewer.reset();
-  setStat("s-total","—");setStat("s-green","—");setStat("s-orange","—");
+  setStat("s-total","—");setStat("s-green","—");setStat("s-orange","—");setStat("s-red","—");
   setProgress(100);log("✓ Reset OK.","ok");setTimeout(function(){setProgress(0);},1000);}
   catch(e){log("✗ "+(e&&e.message?e.message:String(e)),"err");setProgress(0);}
   finally{lockUI(false);checkApplyBtn();}
@@ -326,6 +342,9 @@ document.getElementById("file1").addEventListener("change",function(){
 });
 document.getElementById("file2").addEventListener("change",function(){
   handleFile(this,"fname2","RFI",function(g){_guidsOrange=g;});
+});
+document.getElementById("file3").addEventListener("change",function(){
+  handleFile(this,"fname3","Hold",function(g){_guidsRed=g;});
 });
 
 document.getElementById("applyBtn").addEventListener("click",applyColors);

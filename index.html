@@ -8,45 +8,47 @@
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-    :root{--bg:#111318;--surface:#1a1d24;--card:#20242e;--border:#2e3340;--text:#e8eaf0;--muted:#5a6070;--green:#00FF00;--orange:#FFBB00;--gray:#808080;--warn:#f5a623;--err:#ff5f5f;}
+    :root{--bg:#111318;--surface:#1a1d24;--card:#20242e;--border:#2e3340;--text:#e8eaf0;--muted:#5a6070;--green:#00FF00;--orange:#FFBB00;--red:#FF0000;--gray:#808080;--warn:#f5a623;--err:#ff5f5f;}
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:12.5px;padding:14px;min-height:100vh}
 
     .hd{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:13px;border-bottom:1px solid var(--border)}
-    .hd-icon{width:34px;height:34px;border-radius:9px;flex-shrink:0;background:linear-gradient(135deg,var(--green),var(--orange));display:flex;align-items:center;justify-content:center;font-size:17px}
+    .hd-icon{width:34px;height:34px;border-radius:9px;flex-shrink:0;background:linear-gradient(135deg,var(--green),var(--red));display:flex;align-items:center;justify-content:center;font-size:17px}
     .hd-name{font-size:13.5px;font-weight:700;letter-spacing:-.2px}
     .hd-sub{font-size:10.5px;color:var(--muted);margin-top:2px}
 
     .section-label{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
 
     .upload{position:relative;border:1.5px dashed var(--border);border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:8px}
-    .upload:hover,.upload.over{border-color:var(--orange);background:rgba(255,187,0,.05)}
+    .upload:hover,.upload.over{border-color:var(--text);background:rgba(255,255,255,.05)}
     .upload input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
     .upload-row{display:flex;align-items:center;gap:8px}
     .upload-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
     .dot-green{background:var(--green);box-shadow:0 0 6px var(--green)}
     .dot-orange{background:var(--orange);box-shadow:0 0 6px var(--orange)}
+    .dot-red{background:var(--red);box-shadow:0 0 6px var(--red)}
     .dot-gray{background:var(--gray);box-shadow:0 0 6px var(--gray)}
     .upload-label{font-size:12px;flex:1;text-align:left}
     .upload-label b{color:#ffffff}
     .fname{font-size:11px;color:var(--green);font-family:'JetBrains Mono',monospace;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .fname.orange{color:var(--orange)}
+    .fname.red{color:var(--red)}
 
     .legend{display:flex;gap:7px;margin:12px 0;flex-wrap:wrap;}
     .leg{flex:1;display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:11px;min-width:30%;}
     .dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
 
-    .stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+    .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px}
     .scard{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 10px}
     .slabel{font-size:9.5px;color:var(--muted);margin-bottom:3px}
     .sval{font-size:16px;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1}
-    .sval.c-green{color:var(--green)}.sval.c-orange{color:var(--orange)}.sval.c-muted{color:var(--muted)}
+    .sval.c-green{color:var(--green)}.sval.c-orange{color:var(--orange)}.sval.c-red{color:var(--red)}.sval.c-muted{color:var(--muted)}
     
     .stats-full{grid-template-columns:1fr;margin-bottom:6px;}
 
     .prog-wrap{height:3px;background:var(--border);border-radius:2px;margin-bottom:12px;overflow:hidden;display:none}
     .prog-wrap.on{display:block}
-    .prog-bar{height:100%;width:0;background:linear-gradient(90deg,var(--green),var(--orange));border-radius:2px;transition:width .25s}
+    .prog-bar{height:100%;width:0;background:linear-gradient(90deg,var(--green),var(--red));border-radius:2px;transition:width .25s}
 
     .btn-row{display:flex;gap:7px;margin-bottom:10px}
     button{flex:1;padding:9px 6px;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .15s,transform .1s}
@@ -93,11 +95,23 @@
   <div class="fname orange" id="fname2">Chưa chọn file</div>
 </div>
 
+<!-- Upload 3: Hold → Đỏ -->
+<div class="section-label">📂 File Hold → Đỏ</div>
+<div class="upload" id="zone3">
+  <input type="file" id="file3" accept=".xls,.xlsx"/>
+  <div class="upload-row">
+    <div class="upload-dot dot-red"></div>
+    <div class="upload-label">Chọn file Excel <b>(Hold)</b></div>
+  </div>
+  <div class="fname red" id="fname3">Chưa chọn file</div>
+</div>
+
 <!-- Legend -->
 <div class="legend">
   <div class="leg"><div class="dot dot-green"></div>Ban hành</div>
   <div class="leg"><div class="dot dot-orange"></div>RFI</div>
-  <div class="leg"><div class="dot dot-gray"></div>Còn lại (Màu gốc)</div>
+  <div class="leg"><div class="dot dot-red"></div>Hold</div>
+  <div class="leg"><div class="dot dot-gray"></div>Còn lại (Xám)</div>
 </div>
 
 <!-- Stats -->
@@ -107,6 +121,7 @@
 <div class="stats">
   <div class="scard"><div class="slabel">🟢 Ban hành</div><div class="sval c-green" id="s-green">—</div></div>
   <div class="scard"><div class="slabel">🟠 RFI</div><div class="sval c-orange" id="s-orange">—</div></div>
+  <div class="scard"><div class="slabel">🔴 Hold</div><div class="sval c-red" id="s-red">—</div></div>
 </div>
 
 <div class="prog-wrap" id="progWrap"><div class="prog-bar" id="progBar"></div></div>
