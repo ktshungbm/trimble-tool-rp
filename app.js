@@ -1,13 +1,13 @@
 /**
- * Paint Approval Tool v10.0
+ * Paint Approval Tool v10.1
  * ─────────────────────────────────────
  * 2 file Excel:
  *   File 1 (Ban hành)  → 🟢 Xanh lá  #00FF00
  *   File 2 (RFI)       → 🟠 Màu cam  #FFBB00
- *   Còn lại            → ⚪ Màu xám  #808080
+ *   Còn lại            → giữ màu gốc
  *
- * Dựa trên v9 đã chứng minh hoạt động.
- * Chiến lược: tô xám hết → hiện+màu ban hành → hiện+màu rfi
+ * Dựa trên logic của Tool-Mau (v9).
+ * Chiến lược: ẩn hết → hiện+màu ban hành → hiện+màu rfi → hiện phần còn lại (màu gốc)
  * ─────────────────────────────────────
  */
 
@@ -23,6 +23,7 @@ var PAINT_DELAY = 150;
 var _api = null;
 var _guidsGreen = [];  // file 1
 var _guidsOrange= [];  // file 2
+var _updateCount = 1;  // Counter for saved views
 
 /* ═══ UI ═══ */
 function log(m,t){var e=document.getElementById("log");if(!e){console.log(m);return;}var s=document.createElement("span");if(t)s.className=t;s.textContent=m+"\n";e.appendChild(s);e.scrollTop=e.scrollHeight;console.log("["+(t||"")+"] "+m);}
@@ -208,9 +209,9 @@ async function applyColors(){
     }
     setProgress(35);
 
-    // 4. Hiện và tô màu XÁM cho TẤT CẢ
-    log("Tô xám toàn bộ model...","info");
-    try{await api.viewer.setObjectState(undefined,{visible:true, color:COLOR_GRAY});}catch(e){}
+    // 4. Ẩn TẤT CẢ (Giống logic file Mẫu)
+    log("Ẩn toàn bộ model...","info");
+    try{await api.viewer.setObjectState(undefined,{visible:false});}catch(e){}
     await sleep(800);
     setProgress(42);
 
@@ -242,18 +243,23 @@ async function applyColors(){
     setProgress(75);
     await sleep(300);
 
+    // 7. Hiện lại phần còn lại (giữ màu gốc)
+    log("Hiện phần còn lại (giữ màu gốc)...","info");
+    try{await api.viewer.setObjectState(undefined,{visible:true});}catch(e){}
+    await sleep(500);
     setProgress(100);
 
     log("","info");
     log("✓ HOÀN TẤT!","ok");
     if(greenTotal) log("  🟢 Ban hành: "+fmtN(greenTotal)+" cấu kiện","ok");
     if(orangeTotal)log("  🟠 RFI: "+fmtN(orangeTotal)+" cấu kiện","ok");
-    log("  Còn lại: màu xám","info");
+    log("  Còn lại: giữ màu gốc","info");
     
     setTimeout(async function(){
       setProgress(0);
       log("Đang tự động lưu View...","info");
       await saveView();
+      _updateCount++;
     },1500);
 
   }catch(err){
@@ -276,11 +282,13 @@ async function saveView(){
   try{
     var api=await getAPI();
     var n=new Date();
-    var name="Auto Update "+n.getFullYear()+"-"+pad2(n.getMonth()+1)+"-"+pad2(n.getDate())+" "+pad2(n.getHours())+":"+pad2(n.getMinutes());
+    // Format: 25/03/2026 18:05PM
+    var timeStr = pad2(n.getDate())+"/"+pad2(n.getMonth()+1)+"/"+n.getFullYear()+" "+pad2(n.getHours())+":"+pad2(n.getMinutes())+(n.getHours()>=12?"PM":"AM");
+    var name="Lần "+_updateCount+"-"+timeStr;
     
     var c=await api.view.createView({
       name:name,
-      description:"Paint Approval Tool v10.0 | Auto Save"
+      description:"Paint Approval Tool | Auto Save"
     });
     
     if(!c||!c.id)throw new Error("Không nhận được ID của View.");
