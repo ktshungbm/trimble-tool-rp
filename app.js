@@ -277,20 +277,17 @@ async function saveView(){
     var api=await getAPI();
     var n=new Date();
     var name="Auto Update "+n.getFullYear()+"-"+pad2(n.getMonth()+1)+"-"+pad2(n.getDate())+" "+pad2(n.getHours())+":"+pad2(n.getMinutes());
-    // Create view with shared permissions, if API supports it
+    
     var c=await api.view.createView({
       name:name,
-      description:"Paint Approval Tool v10.0 | Auto Save",
-      isShared:true, 
-      sharedWith:["PROJECT"] 
+      description:"Paint Approval Tool v10.0 | Auto Save"
     });
-    if(!c||!c.id)throw new Error("No view ID.");
     
-    try {
-      await api.view.updateView({id:c.id, type:"SHARED"});
-    } catch(ignore){}
+    if(!c||!c.id)throw new Error("Không nhận được ID của View.");
     
+    await api.view.updateView({id:c.id});
     await api.view.selectView(c.id);
+    
     log('✓ Đã tự động lưu View: "'+name+'"',"ok");
   }catch(e){
     log("✗ Lỗi lưu view: "+(e&&e.message?e.message:String(e)),"err");
