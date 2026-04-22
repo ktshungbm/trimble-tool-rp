@@ -1,0 +1,7 @@
+{
+  "title": "Paint Approval Tool",
+  "icon": "https://ktshungbm.github.io/trimble-tool-rp/icon.png",
+  "url": "https://ktshungbm.github.io/trimble-tool-rp/index.html?v=10",
+  "description": "Tô màu cấu kiện theo trạng thái: trình duyệt (xanh lá) / đã ban hành (xanh dương)",
+  "enabled": true
+}
