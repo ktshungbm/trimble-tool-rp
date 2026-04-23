@@ -1,7 +1,7 @@
 {
-  "title": "Paint Approval Tool v10",
+  "title": "Paint Approval Tool v11",
   "icon": "https://ktshungbm.github.io/trimble-tool-rp/logo.png",
-  "url": "https://ktshungbm.github.io/trimble-tool-rp/index.html?v=10",
-  "description": "Tô màu cấu kiện theo trạng thái: Ban hành (xanh lá) / RFI (cam) / Còn lại (xám)",
+  "url": "https://ktshungbm.github.io/trimble-tool-rp/index.html?v=11",
+  "description": "Tô màu cấu kiện theo trạng thái: Ban hành (xanh lá) / RFI (cam) / Còn lại (màu gốc)",
   "enabled": true
 }
