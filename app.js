@@ -214,10 +214,7 @@ async function applyColors() {
     }
     setProgress(35);
 
-    // 4. Hiện và tô XÁM toàn bộ model
-    log("Tô xám toàn bộ model...", "info");
-    try { await api.viewer.setObjectState(undefined, { visible: true, color: COLOR_GRAY }); } catch (e) { }
-    await sleep(2500); // Wait longer to ensure viewer finishes applying global color before specific colors
+    // 4. Giữ màu gốc toàn bộ model (đã reset ở bước 1)
     setProgress(42);
 
     // 5. Hiện + tô XANH LÁ (Ban hành)
@@ -269,7 +266,7 @@ async function applyColors() {
     if (greenTotal) log("  🟢 Ban hành: " + fmtN(greenTotal) + " cấu kiện", "ok");
     if (orangeTotal) log("  🟠 RFI: " + fmtN(orangeTotal) + " cấu kiện", "ok");
     if (redTotal) log("  🔴 Hold: " + fmtN(redTotal) + " cấu kiện", "ok");
-    log("  Còn lại: màu xám", "info");
+    log("  Còn lại: màu gốc", "info");
 
     setTimeout(async function () {
       setProgress(0);
